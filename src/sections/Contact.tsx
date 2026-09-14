@@ -228,12 +228,6 @@ export default function Contact() {
                 />
               </div>
 
-              <p className="text-sm leading-relaxed text-[#d7e2ea]/45">
-                {hasEndpoint
-                  ? 'Your message is delivered straight to my inbox. I read everything and reply to what I can.'
-                  : 'This form opens a prepared email in your mail client. No backend delivery is implied.'}
-              </p>
-
               <div className="flex flex-wrap items-center gap-5">
                 <Magnet padding={80} strength={5}>
                   <button type="submit" className="contact-pill group" disabled={submitting} aria-busy={submitting}>
