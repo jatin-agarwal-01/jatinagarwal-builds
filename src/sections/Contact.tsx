@@ -15,8 +15,15 @@ import { contactButtons, socialLinks } from '../data/site';
  * With neither set the form falls back to opening the visitor's mail client,
  * which is the behaviour the site shipped with.
  */
-const web3formsKey = import.meta.env.VITE_WEB3FORMS_KEY as string | undefined;
-const formspreeId = import.meta.env.VITE_FORMSPREE_ID as string | undefined;
+// Vite inlines these at build/dev-server start, so restart `npm run dev`
+// after editing `.env.local` or the old (empty) value stays compiled in.
+const readEnv = (value: unknown) => {
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  return trimmed ? trimmed : undefined;
+};
+
+const web3formsKey = readEnv(import.meta.env.VITE_WEB3FORMS_KEY);
+const formspreeId = readEnv(import.meta.env.VITE_FORMSPREE_ID);
 const hasEndpoint = Boolean(web3formsKey || formspreeId);
 
 type Status = 'idle' | 'submitting' | 'sent' | 'mailto' | 'error';
@@ -33,6 +40,8 @@ function buildRequest(form: FormState) {
         access_key: web3formsKey,
         subject,
         from_name: 'Portfolio contact form',
+        replyto: form.email,
+        botcheck: '',
         name: form.name,
         email: form.email,
         message: form.message,
@@ -107,11 +116,17 @@ export default function Contact() {
         body: JSON.stringify(body),
       });
 
-      if (!response.ok) throw new Error(`Contact endpoint responded ${response.status}`);
+      // Web3Forms answers 200 with `success: false` when the key is wrong or
+      // the submission is rejected, so the status code alone is not enough.
+      const result = await response.json().catch(() => null);
+      if (!response.ok || (result && result.success === false)) {
+        throw new Error(result?.message ?? `Contact endpoint responded ${response.status}`);
+      }
 
       setStatus('sent');
       setForm(emptyForm);
-    } catch {
+    } catch (error) {
+      console.error('Contact form delivery failed:', error);
       setStatus('error');
     }
   };
